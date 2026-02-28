@@ -11,22 +11,11 @@ local function Import(path)
         return ModuleCache[path]
     end
 
-    -- [ Debug ] Add cache buster and print URL to debug 404s
-    local url = REPO_URL .. path .. ".lua?t=" .. tostring(math.random())
-    print("[Loader] Fetching: " .. url)
-
+    local url = REPO_URL .. path .. ".lua"
     local success, response = pcall(game.HttpGet, game, url)
     if not success then
         error("[Loader] Failed to fetch module: " .. path .. " | Error: " .. tostring(response))
     end
-
-    -- [ DEBUG ] Check for empty or corrupted file content.
-    if not response or response == "" then
-        error("[Loader] CRITICAL: Fetched file '" .. path .. "' is EMPTY. Check your GitHub repository.")
-    end
-    print("--- RAW CONTENT OF " .. path .. " ---")
-    print(response)
-    print("-----------------------------")
 
     local func, loadErr = loadstring(response)
     if not func then
