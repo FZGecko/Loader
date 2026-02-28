@@ -22,7 +22,9 @@ local function Import(path)
         error("[Loader] Syntax Error in " .. path .. ": " .. tostring(loadErr))
     end
 
-    local module = func(Import)
+    -- The first call `func()` executes the chunk and returns the factory function.
+    -- The second call `(Import)` invokes the factory with the dependency.
+    local module = func()(Import)
     ModuleCache[path] = module
     return module
 end
