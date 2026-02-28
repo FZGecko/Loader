@@ -1,27 +1,28 @@
--- [ Core/Services.lua ]
--- Provides stealthy and resilient access to Roblox services.
-
 return function(import)
+    -- [ Optimization ] Localize globals
+    local game = game
+    local pcall = pcall
+    
     local Services = {}
     local cache = {}
+    
+    -- Attempt to use cloneref for safety, fallback to standard identity
+    local clone = cloneref or function(o) return o end
 
-    -- Use cloneref if the executor supports it. This creates a "shadow" reference
-    -- that can bypass some anti-cheat checks. If not, it gracefully falls back.
-    local clone = cloneref or function(v) return v end
+    function Services.Get(name)
+        if cache[name] then return cache[name] end
 
-    function Services.Get(serviceName)
-        if cache[serviceName] then
-            return cache[serviceName]
+        local success, service = pcall(game.GetService, game, name)
+        
+        -- Fallback 1: FindService (Stealthier check before brute-forcing)
+        if not success or not service then
+            pcall(function() service = game:FindService(name) end)
         end
 
-        local success, service = pcall(game.GetService, game, serviceName)
-
+        -- Fallback 2: Manual scan if GetService is hooked/blocked
         if not success or not service then
-            -- FALLBACK: If GetService is hooked, renamed, or fails, we scan manually.
-            -- This is your plan B. A good engine always has a plan B.
-            warn("[Services] GetService failed for " .. serviceName .. ". Using fallback scan.")
             for _, child in ipairs(game:GetChildren()) do
-                if child.ClassName == serviceName then
+                if child.ClassName == name then
                     service = child
                     break
                 end
@@ -30,12 +31,11 @@ return function(import)
 
         if service then
             local ref = clone(service)
-            cache[serviceName] = ref
+            cache[name] = ref
             return ref
         end
-
-        -- If we still can't find it, the engine is dead in the water. Fail loudly.
-        error("[Services] CRITICAL FAILURE: Could not locate service '" .. serviceName .. "'. Engine cannot continue.")
+        
+        error("[Services] Critical: Could not find service " .. name)
     end
 
     return Services
