@@ -1,74 +1,103 @@
--- [ Core/Kernel.lua ]
--- The central API gateway for the engine.
--- All features must interact with the game through the Kernel.
-
 return function(import)
-    -- Dependency Injection: The Kernel asks the loader for the tools it needs.
+    -- Localize globals for performance
+    local pcall, pairs, type = pcall, pairs, type
+    local Instance_new, math_random, string_char = Instance.new, math.random, string.char
+
     local Janitor = import("Core/Janitor")
     local Services = import("Core/Services")
 
     local Kernel = {
         IsActive = true,
-        _masterJanitor = Janitor.new(),
-        _propertySnapshots = {},
+        _janitor = Janitor.new(),
+        _snapshots = {}
     }
 
-    -- Safe Instance Creation, tracked by the Janitor.
-    function Kernel:Create(className, properties)
-        if not self.IsActive then return nil end
-        local instance = Instance.new(className)
-        self._masterJanitor:Add(instance) -- Give the new instance to the Janitor.
+    -- Generates a random, meaningless string for instance names to avoid detection.
+    local function GenerateRandomName()
+        local name = "uCE_"
+        for i = 1, 6 do
+            name = name .. string_char(math_random(97, 122)) -- a-z
+        end
+        return name
+    end
 
-        if properties then
-            for prop, value in pairs(properties) do
-                pcall(function() instance[prop] = value end)
+    --// API: Creation
+    function Kernel:Create(className, props)
+        if not self.IsActive then return end
+        
+        local success, instance = pcall(Instance_new, className)
+        if not success or not instance then return nil end
+        
+        self._janitor:Add(instance)
+
+        if props then
+            -- Optimization: Set Parent last to avoid redundant rendering/physics calculations.
+            local parent = props.Parent
+            props.Parent = nil
+
+            -- Stealth: If no name is provided, generate a random one.
+            if props.Name == nil or props.Name == "" then
+                props.Name = GenerateRandomName()
+            end
+            
+            for k, v in pairs(props) do
+                pcall(function() instance[k] = v end)
+            end
+            
+            if parent then
+                pcall(function() instance.Parent = parent end)
             end
         end
         return instance
     end
 
-    -- Safe Event Connection, tracked by the Janitor.
+    --// API: Events
     function Kernel:Connect(signal, callback)
-        if not self.IsActive then return nil end
+        if not self.IsActive then return end
+        
         local connection = signal:Connect(function(...)
             if not self.IsActive then return end
-            pcall(callback, ...) -- Protect the engine from feature script errors.
+            -- Safety: pcall isolates errors, preventing one feature from crashing the engine.
+            local s, e = pcall(callback, ...)
+            if not s then warn("[Kernel] Error:", e) end
         end)
-        self._masterJanitor:Add(connection) -- Give the new connection to the Janitor.
+        
+        self._janitor:Add(connection)
         return connection
     end
 
-    -- Safe Property Modification with Restoration.
-    function Kernel:SetProperty(instance, property, newValue)
+    --// API: State Management
+    function Kernel:SetProperty(instance, prop, value)
         if not self.IsActive then return end
-        self._propertySnapshots[instance] = self._propertySnapshots[instance] or {}
-        if self._propertySnapshots[instance][property] == nil then
-            self._propertySnapshots[instance][property] = instance[property]
+        
+        self._snapshots[instance] = self._snapshots[instance] or {}
+        -- Snapshot the original value on first modification for later restoration.
+        if self._snapshots[instance][prop] == nil then
+            self._snapshots[instance][prop] = instance[prop]
         end
-        instance[property] = newValue
+        
+        instance[prop] = value
     end
 
-    -- The "Zero Footprint" Kill Switch.
+    --// Lifecycle
     function Kernel:Shutdown()
         if not self.IsActive then return end
         self.IsActive = false
-        print("[Kernel] Shutdown initiated. Reverting and cleaning...")
-
-        -- 1. Restore properties.
-        for instance, props in pairs(self._propertySnapshots) do
-            if instance and instance.Parent then
-                for prop, originalValue in pairs(props) do
-                    pcall(function() instance[prop] = originalValue end)
+        
+        -- 1. Revert Properties
+        for inst, props in pairs(self._snapshots) do
+            if inst and inst.Parent then
+                for p, val in pairs(props) do
+                    pcall(function() inst[p] = val end)
                 end
             end
         end
-
-        -- 2. Tell the master Janitor to clean everything.
-        self._masterJanitor:Clean()
-
-        -- 3. Clear internal state.
-        self._propertySnapshots = {}
-        print("[Kernel] Zero Footprint achieved. Engine is clean.")
+        
+        -- 2. Clean Objects
+        self._janitor:Clean()
+        
+        -- 3. Clear Memory
+        self._snapshots = {}
     end
 
     return Kernel
