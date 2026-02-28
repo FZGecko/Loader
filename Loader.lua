@@ -20,6 +20,14 @@ local function Import(path)
         error("[Loader] Failed to fetch module: " .. path .. " | Error: " .. tostring(response))
     end
 
+    -- [ DEBUG ] Check for empty or corrupted file content.
+    if not response or response == "" then
+        error("[Loader] CRITICAL: Fetched file '" .. path .. "' is EMPTY. Check your GitHub repository.")
+    end
+    print("--- RAW CONTENT OF " .. path .. " ---")
+    print(response)
+    print("-----------------------------")
+
     local func, loadErr = loadstring(response)
     if not func then
         error("[Loader] Syntax Error in " .. path .. ": " .. tostring(loadErr))
