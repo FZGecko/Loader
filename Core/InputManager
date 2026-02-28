@@ -1,4 +1,5 @@
 return function(import)
+    -- [ InputManager ] Centralized input handling
     local Kernel = import("Core/Kernel")
     local Services = import("Core/Services")
     local UserInputService = Services.Get("UserInputService") -- Localized for clarity
