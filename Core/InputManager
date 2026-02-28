@@ -8,7 +8,7 @@ return function(import)
     local IsKeyDown = UserInputService.IsKeyDown
     
     local InputManager = {
-        _binds = {}
+        _binds = {} -- Optimized: Keyed by KeyCode/UserInputType for direct lookup
     }
     
     -- Checks if all required modifier keys are currently pressed.
@@ -25,12 +25,17 @@ return function(import)
     -- [ Master Connection ]
     Kernel:Connect(UserInputService.InputBegan, function(input, gameProcessed)
         if gameProcessed then return end
-        
-        -- Check against registry
-        for name, bind in pairs(InputManager._binds) do
-            -- Match the primary key (either KeyCode or UserInputType)
-            if input.KeyCode == bind.Key or input.UserInputType == bind.Key then
-                -- Now, check if all required modifier keys are also pressed
+
+        -- Use UserInputType for non-keyboard inputs like mouse clicks
+        local key = input.KeyCode
+        if key == Enum.KeyCode.Unknown then
+            key = input.UserInputType
+        end
+
+        -- Direct lookup instead of a full loop
+        local bindsForKey = InputManager._binds[key]
+        if bindsForKey then
+            for name, bind in pairs(bindsForKey) do
                 if AreModifiersPressed(bind.Modifiers) then
                     local success, err = pcall(bind.Callback)
                     if not success then
@@ -42,12 +47,6 @@ return function(import)
     end)
     
     -- [ Public API ]
-    
-    -- Binds a callback to a primary key and optional modifier keys.
-    -- @param name (string): Unique name for the bind.
-    -- @param key (Enum.KeyCode or Enum.UserInputType): The main key to trigger the bind.
-    -- @param modifiers (table, optional): A table of KeyCodes that must also be held down.
-    -- @param callback (function): The function to execute.
     function InputManager:Bind(name, key, modifiers, callback)
         -- Handle optional 'modifiers' argument
         if type(modifiers) == "function" and callback == nil then
@@ -55,15 +54,24 @@ return function(import)
             modifiers = nil
         end
 
-        self._binds[name] = {
-            Key = key,
+        self._binds[key] = self._binds[key] or {}
+        self._binds[key][name] = {
             Modifiers = modifiers,
             Callback = callback
         }
     end
     
     function InputManager:Unbind(name)
-        self._binds[name] = nil
+        -- This is now less efficient, but unbinding is rare.
+        for key, binds in pairs(self._binds) do
+            if binds[name] then
+                binds[name] = nil
+                if next(binds) == nil then
+                    self._binds[key] = nil
+                end
+                return
+            end
+        end
     end
     
     return InputManager
