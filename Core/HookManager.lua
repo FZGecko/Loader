@@ -164,9 +164,9 @@ return function(import)
             hookData[4] = "hookfunction"
         else
             -- Strategy 2: Table Replacement (Fallback)
-            module[functionName] = newcclosure(function(...)
+            module[functionName] = function(...)
                 return callback(originalFunc, ...)
-            end)
+            end
         end
 
         table_insert(self._registry.modules, hookData)
