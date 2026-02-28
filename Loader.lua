@@ -1,52 +1,65 @@
--- [ Bootstrap / Loader.lua ]
--- The only file the user executes.
+-- [ Loader.lua ]
+-- The single entry point for the Universal Core Engine.
+-- It fetches, compiles, and links all modules from a remote source.
 
-local Repo = "https://raw.githubusercontent.com/YourUser/YourRepo/main/"
+-- ============================ CONFIGURATION ============================
+-- This is the ONLY place you should ever define a URL.
+local REPO_URL = "https://raw.githubusercontent.com/YourUser/YourRepo/main/"
+-- =======================================================================
 
-local Cache = {}
+local ModuleCache = {}
 
--- The Magic Function: Custom Require
+-- The custom import function. This is the heart of the loader.
 local function Import(path)
-    if Cache[path] then return Cache[path] end
+    if ModuleCache[path] then
+        return ModuleCache[path]
+    end
 
-    local url = Repo .. path .. ".lua"
-    print("[Bootstrap] Fetching: " .. path)
+    local url = REPO_URL .. path .. ".lua"
+    print("[Loader] Importing: " .. path)
     
-    local success, result = pcall(function()
-        return game:HttpGet(url)
-    end)
-
-    if not success then
-        error("[Bootstrap] Failed to fetch " .. path .. ": " .. tostring(result))
+    local success, content = pcall(game.HttpGet, game, url)
+    if not success or not content then
+        error("[Loader] FATAL: Failed to download module at " .. url .. ". " .. tostring(content))
     end
 
-    -- Compile the string into a function
-    local func, loadErr = loadstring(result)
+    -- Compile the downloaded string into a Lua function.
+    local func, compile_error = loadstring(content)
     if not func then
-        error("[Bootstrap] Syntax error in " .. path .. ": " .. tostring(loadErr))
+        error("[Loader] FATAL: Syntax error in module '" .. path .. "'. " .. tostring(compile_error))
     end
 
-    -- Execute the module. 
-    -- CRITICAL: We pass the 'Import' function TO the module so it can load its own dependencies.
+    -- Execute the module, passing it the Import function so it can load its own dependencies.
+    -- This is called Dependency Injection.
     local module = func(Import)
     
-    Cache[path] = module
+    ModuleCache[path] = module
     return module
 end
 
--- Initialize the Engine
+-- The main boot sequence.
 local function Boot()
-    getgenv().UniversalEngine = {} -- Optional: Global access if needed
+    print("[Loader] Boot sequence initiated.")
     
-    -- Load the Kernel. The Kernel will use 'Import' to load Maid and Services.
+    -- Import the Kernel. The Kernel will then import its own dependencies (Scope, Services).
     local Kernel = Import("Core/Kernel")
-    local EntityManager = Import("Core/EntityManager")
     
-    print("[Bootstrap] Engine Loaded Successfully.")
+    -- Make the Kernel and its shutdown function globally accessible for control.
+    getgenv().UniversalCore = {
+        Kernel = Kernel,
+        Shutdown = function()
+            Kernel:Shutdown()
+            getgenv().UniversalCore = nil -- Clean up the global table itself.
+        end
+    }
     
-    -- Example: Start a feature
+    print("[Loader] Universal Core Engine is active. Call UniversalCore.Shutdown() to unload.")
+
+    -- From here, you would load your features.
+    -- Example:
     -- local ESP = Import("Features/ESP")
-    -- ESP.Init()
+    -- ESP:Run(Kernel)
 end
 
-Boot()
+-- Run the bootstrapper.
+pcall(Boot)
