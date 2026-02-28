@@ -1,19 +1,6 @@
 -- [ Universal Core Engine : Loader ]
--- [ Stealth ] Generate a unique, random key for the global environment.
-local ENV_KEY = ("UniversalCore_" .. tostring(math.random(1e5, 1e6))):gsub("%.", "")
-
--- [ Guard ] Unload any previous instance before loading.
--- If the engine is already running, unload it before loading the new one.
-local old_env = getgenv()[ENV_KEY]
-if old_env then
-    if type(old_env.Unload) == "function" then
-        pcall(old_env.Unload)
-    end
-    getgenv()[ENV_KEY] = nil
-end
-
 -- !!! CHANGE THIS TO YOUR REPOSITORY URL !!!
-local REPO_URL = "https://raw.githubusercontent.com/FZGecko/Loader/refs/heads/main/Loader.lua"
+local REPO_URL = "https://raw.githubusercontent.com/FZGecko/Loader/main/"
 
 local Loader = {}
 local ModuleCache = {}
@@ -44,15 +31,16 @@ local function Boot()
     local Kernel = Import("Core/Kernel")
     local EntityManager = Import("Core/EntityManager")
     EntityManager.Init()
-
-    -- Expose Control
-    getgenv()[ENV_KEY] = {
+    
+    -- Return the engine interface directly to the caller.
+    return {
+        Kernel = Kernel,
+        Import = Import,
         Unload = function()
             Kernel:Shutdown()
-            getgenv()[ENV_KEY] = nil
             ModuleCache = nil
         end
     }
 end
 
-Boot()
+return Boot()
