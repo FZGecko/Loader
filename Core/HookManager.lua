@@ -5,6 +5,7 @@ return function(import)
     local getnamecallmethod = getnamecallmethod
     local checkcaller = checkcaller
     local hookmetamethod = hookmetamethod
+    local hookfunction = hookfunction
     local newcclosure = newcclosure
     local pcall = pcall
     local pairs = pairs
@@ -140,12 +141,25 @@ return function(import)
             return
         end
 
-        -- Replace the function with our wrapper
-        module[functionName] = function(...)
-            return callback(originalFunc, ...)
+        local hookData = { module, functionName, originalFunc, "table" }
+
+        if hookfunction then
+            -- Strategy 1: hookfunction (Stealthier)
+            -- We overwrite the function in memory. 'originalFunc' is the target.
+            -- 'oldFunc' is the pristine copy we can call.
+            local oldFunc = hookfunction(originalFunc, newcclosure(function(...)
+                return callback(oldFunc, ...) -- Pass the pristine copy to the callback
+            end))
+            hookData[3] = oldFunc -- Store the pristine copy so we can restore it later
+            hookData[4] = "hookfunction"
+        else
+            -- Strategy 2: Table Replacement (Fallback)
+            module[functionName] = function(...)
+                return callback(originalFunc, ...)
+            end
         end
 
-        table_insert(self._registry.modules, { module, functionName, originalFunc })
+        table_insert(self._registry.modules, hookData)
     end
 
     -- [ Reversal ]
@@ -165,7 +179,12 @@ return function(import)
 
         -- Restore all monkey-patched module functions
         for _, data in pairs(self._registry.modules) do
-            data[1][data[2]] = data[3] -- module[functionName] = originalFunc
+            if data[4] == "hookfunction" then
+                -- Restore memory hook: hookfunction(target, original_copy)
+                hookfunction(data[1][data[2]], data[3])
+            else
+                data[1][data[2]] = data[3] -- module[functionName] = originalFunc
+            end
         end
 
         -- Clear registry to ensure no lingering references
