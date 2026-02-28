@@ -17,6 +17,11 @@ local function Import(path)
         error("[Loader] Failed to fetch module: " .. path .. " | Error: " .. tostring(response))
     end
 
+    -- [ DEBUG ] Print the raw content to check for corruption/caching issues.
+    print("--- CONTENT OF " .. path .. " ---")
+    print(response)
+    print("--------------------------")
+
     local func, loadErr = loadstring(response)
     if not func then
         error("[Loader] Syntax Error in " .. path .. ": " .. tostring(loadErr))
