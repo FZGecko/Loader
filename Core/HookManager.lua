@@ -6,6 +6,7 @@ return function(import)
     local checkcaller = checkcaller
     local hookmetamethod = hookmetamethod
     local hookfunction = hookfunction
+    local clonefunction = clonefunction
     local newcclosure = newcclosure
     local pcall = pcall
     local pairs = pairs
@@ -143,7 +144,16 @@ return function(import)
 
         local hookData = { module, functionName, originalFunc, "table" }
 
-        if hookfunction then
+        -- [ Strategy Selection ]
+        -- hookfunction is powerful but invasive. Some anti-cheats detect the memory change.
+        -- Table replacement is safer for ModuleScripts unless the game caches the function reference.
+        -- We will prefer table replacement for modules, but wrap it in a C closure for stealth.
+        
+        -- If you REALLY need hookfunction (e.g. game cached the function), uncomment the next line.
+        -- local USE_HOOKFUNCTION = true 
+        local USE_HOOKFUNCTION = false
+
+        if USE_HOOKFUNCTION and hookfunction then
             -- Strategy 1: hookfunction (Stealthier)
             -- We overwrite the function in memory. 'originalFunc' is the target.
             -- 'oldFunc' is the pristine copy we can call.
