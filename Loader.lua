@@ -62,6 +62,7 @@ local function Import(path)
     -- Execute chunk
     --------------------------------------------------
     local ok, result = pcall(chunk)
+    print(path, ok, result)
 
     if not ok then
         error("[Loader] Runtime error while executing module '" .. path .. "'\n" .. tostring(result))
