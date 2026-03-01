@@ -1,4 +1,4 @@
-return function(import)
+return  function(import)
     local Kernel = import("Core/Kernel")
     local Janitor = import("Core/Janitor")
     local ThemeApplier = import("Gui/ThemeApplier")
