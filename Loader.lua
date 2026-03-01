@@ -3,6 +3,7 @@
 local REPO_URL = "https://raw.githubusercontent.com/FZGecko/Loader/main/"
 
 local Loader = {}
+local Kernel -- Forward declaration
 local ModuleCache = {}
 
 -- Imports modules from the remote repository, handling caching and dependency injection.
