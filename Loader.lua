@@ -3,7 +3,6 @@
 local REPO_URL = "https://raw.githubusercontent.com/FZGecko/Loader/main/"
 
 local Loader = {}
-local ModuleCache = {}
 
 -- Imports modules from the remote repository, handling caching and dependency injection.
 local function Import(path)
@@ -14,26 +13,28 @@ local function Import(path)
     local url = REPO_URL .. path .. ".lua"
     local success, response = pcall(game.HttpGet, game, url)
     if not success then
-        error("[Loader] Failed to fetch module: " .. path .. " | Error: " .. tostring(response))
+        error("[Loader] Failed to fetch module: " .. path .. " | Error: " .. (response or "Unknown error"))
     end
 
-    local func, loadErr = loadstring(response)
+    local source = response
+    source = source:gsub("^\239\187\191", "") -- Remove BOM
+
+    local func, loadErr = loadstring(source, "@" .. path)
     if not func then
         error("[Loader] Syntax Error in " .. path .. ": " .. tostring(loadErr))
     end
 
     -- The first call `func()` executes the chunk and returns the factory function.
     -- The second call `(Import)` invokes the factory with the dependency.
-    local module = func()(Import)
+    local module, err = pcall(func)
+    if not module then
+        error("[Loader] Error running module: " .. path .. " | Error: " .. (err or "Unknown error"))
+    end
+    module = module(Import)
     ModuleCache[path] = module
     return module
 end
-
-local function Boot()
-    local Kernel = Import("Core/Kernel")
-    local EntityManager = Import("Core/EntityManager")
-    EntityManager.Init()
-
+    
     -- Return the engine interface directly to the caller.
     return {
         Kernel = Kernel,
@@ -44,5 +45,3 @@ local function Boot()
         end
     }
 end
-
-return Boot()
