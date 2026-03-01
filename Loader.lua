@@ -33,7 +33,7 @@ local function Boot()
     local Kernel = Import("Core/Kernel")
     local EntityManager = Import("Core/EntityManager")
     EntityManager.Init()
-    
+
     -- Return the engine interface directly to the caller.
     return {
         Kernel = Kernel,
