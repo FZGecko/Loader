@@ -45,7 +45,12 @@ return function(import)
 
 		SetState("Normal")
 
-		button.Destroy = function()
+		local oldDestroy = button.Destroy
+		function button:Destroy()
+			elementJanitor:Clean()
+			if oldDestroy then
+				oldDestroy(self)
+			end
 			elementJanitor:Clean()
 		end
 
