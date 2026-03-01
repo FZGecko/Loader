@@ -53,7 +53,6 @@ return function(import)
             Text = title or "Universal Core",
             TextXAlignment = Enum.TextXAlignment.Left,
         })
- windowJanitor:Add(titleLabel)
         windowJanitor:Add(titleLabel)
         --// Tab Container
         local tabContainer = Kernel:Create("Frame", {
