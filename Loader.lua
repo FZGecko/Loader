@@ -3,9 +3,8 @@
 
 local REPO_URL = "https://raw.githubusercontent.com/FZGecko/Loader/main/"
 
-local ModuleCache = {}
-
 local Loader = {}
+local ModuleCache = {}
 
 --------------------------------------------------
 -- INTERNAL IMPORT SYSTEM
@@ -13,39 +12,39 @@ local Loader = {}
 
 local function Import(path)
 
-    -- Cache hit
+    --------------------------------------------------
+    -- Cache check
+    --------------------------------------------------
     if ModuleCache[path] then
         return ModuleCache[path]
     end
 
     --------------------------------------------------
-    -- Fetch module source
+    -- Fetch module
     --------------------------------------------------
     local url = REPO_URL .. path .. ".lua"
 
-    local ok, response = pcall(game.HttpGet, game, url)
-    if not ok or not response then
+    local success, response = pcall(game.HttpGet, game, url)
+    if not success or not response then
         error("[Loader] Failed to fetch module: " .. path)
     end
 
     local source = response
 
+    --------------------------------------------------
     -- Remove UTF-8 BOM
+    --------------------------------------------------
     source = source:gsub("^\239\187\191", "")
 
     --------------------------------------------------
-    -- GitHub failure detection
+    -- GitHub HTML protection
     --------------------------------------------------
-    -- GitHub returns HTML on:
-    -- 404
-    -- rate limit
-    -- private repo
     if source:sub(1,1) == "<" then
         error("[Loader] GitHub returned HTML instead of Lua for: " .. path)
     end
 
     --------------------------------------------------
-    -- Compile chunk
+    -- Compile module
     --------------------------------------------------
     local chunk, loadErr = load(source, "@" .. path)
 
@@ -62,34 +61,34 @@ local function Import(path)
     --------------------------------------------------
     -- Execute chunk
     --------------------------------------------------
-    local success, factory = pcall(chunk)
+    local ok, result = pcall(chunk)
 
-    if not success then
-        error("[Loader] Runtime error while executing module '" .. path .. "'\n" .. tostring(factory))
+    if not ok then
+        error("[Loader] Runtime error while executing module '" .. path .. "'\n" .. tostring(result))
     end
 
     --------------------------------------------------
-    -- Validate module format
+    -- Validate factory return
     --------------------------------------------------
-    if type(factory) ~= "function" then
+    if type(result) ~= "function" then
         error(
-            "[Loader] Module '" .. path ..
-            "' must return a factory function:\n" ..
-            "return function(import) ... end"
+            "[Loader] Module '" .. path .. "' must return:\n" ..
+            "return function(import)\n" ..
+            "Got: " .. typeof(result)
         )
     end
 
     --------------------------------------------------
     -- Create module instance
     --------------------------------------------------
-    local module = factory(Import)
+    local module = result(Import)
 
     if module == nil then
         error("[Loader] Module returned nil: " .. path)
     end
 
     --------------------------------------------------
-    -- Cache result
+    -- Cache module
     --------------------------------------------------
     ModuleCache[path] = module
 
@@ -97,7 +96,7 @@ local function Import(path)
 end
 
 --------------------------------------------------
--- PUBLIC LOADER API
+-- PUBLIC API
 --------------------------------------------------
 
 Loader.Import = Import
