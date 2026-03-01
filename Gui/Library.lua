@@ -1,5 +1,5 @@
 return function(import)
-    --[GuiLibrary]
+
     local Kernel = import("Core/Kernel")
     local Janitor = import("Core/Janitor")
     local InputManager = import("Core/InputManager")
@@ -53,7 +53,7 @@ return function(import)
             Text = title or "Universal Core",
             TextXAlignment = Enum.TextXAlignment.Left,
         })
-
+ windowJanitor:Add(titleLabel)
         windowJanitor:Add(titleLabel)
         --// Tab Container
         local tabContainer = Kernel:Create("Frame", {
@@ -64,7 +64,6 @@ return function(import)
             BackgroundColor3 = Theme.Secondary,
             BorderSizePixel = 0,
         })
-        windowJanitor:Add(Kernel:Create("UICorner", { CornerRadius = UDim.new(0, Theme.Rounding), Parent = tabContainer }))
 
         --// Content Container
         local contentContainer = Kernel:Create("Frame", {
@@ -84,6 +83,7 @@ return function(import)
         --// Dragging Logic
         local dragging = false
         local dragStart
+
         local frameStart
 
         windowJanitor:Add(Kernel:Connect(header.InputBegan, function(input)
@@ -97,24 +97,28 @@ return function(import)
         windowJanitor:Add(Kernel:Connect(header.InputEnded, function(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1 then
                 dragging = false
+
             end
         end))
 
         LoopManager:Bind("WindowDrag", "Render", function()
             if dragging then
                 local delta = (UserInputService:GetMouseLocation() - dragStart)
+
                 mainFrame.Position = UDim2.new(frameStart.X.Scale, frameStart.X.Offset + delta.X, frameStart.Y.Scale, frameStart.Y.Offset + delta.Y)
             end
         end)
 
         --// Toggle Logic
         InputManager:Bind("ToggleUI", Enum.KeyCode.RightShift, function()
+
             screenGui.Enabled = not screenGui.Enabled
         end)
 
         screenGui.Enabled = true
         screenGui.Parent = game:GetService("CoreGui")
         return windowJanitor -- Return the janitor so the window can be destroyed individually if needed
+
     end
 
     return Library
