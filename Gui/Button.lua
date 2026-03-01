@@ -6,7 +6,7 @@ return function(import)
     local Button = {}
     Button.__index = Button
 
-    function Button.Create(properties)
+    local function Create(properties)
         local elementJanitor = Janitor.new()
 
         local button = Kernel:Create("TextButton", {
@@ -57,5 +57,6 @@ return function(import)
         return button
     end
 
+    Button.Create = Create
     return Button
 end
