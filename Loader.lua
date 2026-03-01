@@ -15,6 +15,13 @@ local function Import(path)
     local url = REPO_URL .. path .. ".lua"
     local success, response = pcall(game.HttpGet, game, url)
     if not success then
+	   if string.find(response, "&lt;!DOCTYPE") or string.find(response, "&lt;html") then
+			error(
+				"[Loader] GitHub returned HTML instead of Lua.\n"..
+				"Module: "..path.."\n"..
+				"URL: "..url
+			)
+		end
         error("[Loader] Failed to fetch module: " .. path .. " | Error: " .. tostring(response))
     end
 
