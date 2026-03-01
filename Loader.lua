@@ -1,110 +1,69 @@
 -- [ Universal Core Engine : Loader ]
 -- !!! CHANGE THIS TO YOUR REPOSITORY URL !!!
-
 local REPO_URL = "https://raw.githubusercontent.com/FZGecko/Loader/main/"
 
 local Loader = {}
+local Kernel -- Forward declaration
 local ModuleCache = {}
 
---------------------------------------------------
--- INTERNAL IMPORT SYSTEM
---------------------------------------------------
-
+-- Imports modules from the remote repository, handling caching and dependency injection.
 local function Import(path)
-
-    --------------------------------------------------
-    -- Cache check
-    --------------------------------------------------
     if ModuleCache[path] then
         return ModuleCache[path]
     end
 
-    --------------------------------------------------
-    -- Fetch module
-    --------------------------------------------------
+    -- 1. Fetch Module
     local url = REPO_URL .. path .. ".lua"
-
     local success, response = pcall(game.HttpGet, game, url)
-    if not success or not response then
-        error("[Loader] Failed to fetch module: " .. path)
+    if not success then error(string.format("[Loader] HTTP Error: %s | Path: %s", tostring(response), path)) end
+    
+    -- 2. Compile Module
+    local func, loadErr = loadstring(response, "@" .. path)
+    if not func then error(string.format("[Loader] Compile Error: %s | Path: %s", tostring(loadErr), path)) end
+
+    -- 3. Execute Module (and cache)
+    local module
+    local callSuccess, callResult = pcall(func)
+    
+    if callSuccess then
+        -- Check that module returns factory function
+        if type(callResult) == "function" then
+            local factory = callResult
+            local importSuccess, importResult = pcall(factory, Import)
+    
+            if importSuccess then
+                 module = importResult
+                 ModuleCache[path] = module
+                 return module
+            else
+                error(string.format("[Loader] Factory Error: %s | Path: %s", tostring(importResult), path))
+            end
+        else
+            error(string.format("[Loader] Module must return a factory function! | Path: %s", path))
+        end
+    else
+        error(string.format("[Loader] Execute Error: %s | Path: %s", tostring(callResult), path))
     end
-
-    local source = response
-
-    --------------------------------------------------
-    -- Remove UTF-8 BOM
-    --------------------------------------------------
-    source = source:gsub("^\239\187\191", "")
-
-    --------------------------------------------------
-    -- GitHub HTML protection
-    --------------------------------------------------
-    if source:sub(1,1) == "<" then
-        error("[Loader] GitHub returned HTML instead of Lua for: " .. path)
-    end
-
-    --------------------------------------------------
-    -- Compile module
-    --------------------------------------------------
-    local chunk, loadErr = load(source, "@" .. path)
-
-    if not chunk then
-        error(
-            "[Loader] Syntax Error in " .. path ..
-            "\n----- SOURCE BEGIN -----\n" ..
-            source ..
-            "\n----- SOURCE END -----\n" ..
-            tostring(loadErr)
-        )
-    end
-
-    --------------------------------------------------
-    -- Execute chunk
-    --------------------------------------------------
-    local ok, result = pcall(chunk)
-    print("[Loader] Executing:", path)
-
-    if not ok then
-        error("[Loader] Runtime error while executing module '" .. path .. "'\n" .. tostring(result))
-    end
-
-    --------------------------------------------------
-    -- Validate factory return
-    --------------------------------------------------
-    if type(result) ~= "function" then
-        error(
-            "[Loader] Module '" .. path .. "' must return:\n" ..
-            "return function(import)\n" ..
-            "Got: " .. typeof(result)
-        )
-    end
-
-    --------------------------------------------------
-    -- Create module instance
-    --------------------------------------------------
-    local module = result(Import)
-    print("[Loader] Module '" .. path .. "' result:", module)
-
-    if module == nil then
-        error("[Loader] Module returned nil: " .. path)
-    end
-
-    --------------------------------------------------
-    -- Cache module
-    --------------------------------------------------
-    ModuleCache[path] = module
-
-    return module
 end
 
---------------------------------------------------
--- PUBLIC API
---------------------------------------------------
-
-Loader.Import = Import
-
-function Loader.Unload()
-    table.clear(ModuleCache)
+local function Start()
+    Kernel = Import("Core/Kernel")
+    local EntityManager = Import("Core/EntityManager")
+    EntityManager.Init() -- Initialize the entity manager, or we will not see other players
 end
 
-return Loader
+-- Initialize engine
+local Engine = {}
+
+Engine.Start = Start
+Engine.Import = Import
+Engine.Unload = function()
+    if Kernel then
+        Kernel:Shutdown()
+    end
+    for k, v in pairs(ModuleCache) do
+        ModuleCache[k] = nil
+    end
+end
+
+return Engine
