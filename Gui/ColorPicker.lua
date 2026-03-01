@@ -68,7 +68,7 @@ return function(import)
         --// Color Swatch (Displays the Selected Color)
         local swatch = Kernel:Create("Frame", {
             Size = UDim2.new(1, 0, 0, 20),
-            Parent = colorPickerFrame,
+			Parent = colorPickerFrame,
             BackgroundColor3 = Color3.new(1, 1, 1), -- Default White
             Position = UDim2.new(0, 0, 0, 0),
             LayoutOrder = 1
@@ -78,7 +78,7 @@ return function(import)
 
         --// Transparency Slider
         local transparencySlider = Slider.Create({
-            LayoutOrder = 4,
+			LayoutOrder = 4,
             Callback = function(transparency)
                 local currentColor = swatch.BackgroundColor3
                 local h, s, v = RGBToHSV(currentColor)
@@ -88,12 +88,13 @@ return function(import)
             end
         })
         local hue = 0
+	transparencySlider.Parent = colorPickerFrame
+	elementJanitor:Add(transparencySlider)
 
-        transparencySlider.Parent = colorPickerFrame
-        elementJanitor:Add(transparencySlider)
 
+		-- Hue Slider
         -- Hue Slider
-        local hueSlider = Slider.Create({
+		local hueSlider = Slider.Create({
             LayoutOrder = 2,
             Callback = function(h)
                 hue = h * 360
@@ -118,6 +119,7 @@ return function(import)
         })
         saturationSlider.Parent = colorPickerFrame
         elementJanitor:Add(saturationSlider)
+
 
         --// Initialize with Starting Color if Provided
         if properties.StartingColor then
@@ -186,6 +188,7 @@ end
 -- RGBToHSV implementation (This is just an example, and I ommitted it)
 -- local function RGBToHSV(color)
 -- end
+
 
 -- function Slider.SetValue(sliderFrame, color) -- incomplete
 -- local h,s,v = RGBToHSV(color)
