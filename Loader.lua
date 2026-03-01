@@ -82,6 +82,7 @@ local function Import(path)
     -- Create module instance
     --------------------------------------------------
     local module = result(Import)
+    print("[Loader] Module '" .. path .. "' result:", module)
 
     if module == nil then
         error("[Loader] Module returned nil: " .. path)
