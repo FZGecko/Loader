@@ -1,7 +1,6 @@
 return function(import)
     local Kernel = import("Core/Kernel")
     local Janitor = import("Core/Janitor")
-    local ThemeApplier = import("Gui/ThemeApplier")
     local Theme = import("Gui/Theme")
 
     local Button = {}
@@ -22,34 +21,38 @@ return function(import)
         })
         elementJanitor:Add(button)
         elementJanitor:Add(Kernel:Create("UICorner", { CornerRadius = UDim.new(0, Theme.Rounding), Parent = button }))
-        ThemeApplier:Apply(button)
 
-        local function SetState(state)
-            if state == "Hovered" then
-                button.BackgroundColor3 = Theme.Hover
-            elseif state == "Pressed" then
-                button.BackgroundColor3 = Theme.Accent
-            else
-                button.BackgroundColor3 = Theme.Primary
-            end
-        end
+        elementJanitor:Add(Kernel:Connect(button.MouseEnter, function()
+            button.BackgroundColor3 = Theme.Hover
+        end))
 
-        elementJanitor:Add(Kernel:Connect(button.MouseEnter, function() SetState("Hovered") end))
-        elementJanitor:Add(Kernel:Connect(button.MouseLeave, function() SetState("Normal") end))
-        elementJanitor:Add(Kernel:Connect(button.MouseButton1Down, function() SetState("Pressed") end))
-        elementJanitor:Add(Kernel:Connect(button.MouseButton1Up, function() SetState("Hovered") end))
+        elementJanitor:Add(Kernel:Connect(button.MouseLeave, function()
+            button.BackgroundColor3 = Theme.Primary
+        end))
+
+        elementJanitor:Add(Kernel:Connect(button.MouseButton1Down, function()
+            button.BackgroundColor3 = Theme.Accent
+        end))
+
+        elementJanitor:Add(Kernel:Connect(button.MouseButton1Up, function()
+            button.BackgroundColor3 = Theme.Hover
+        end))
 
         if properties.Callback then
             elementJanitor:Add(Kernel:Connect(button.MouseButton1Click, properties.Callback))
         end
 
-        SetState("Normal")
-
         button.Destroy = function()
             elementJanitor:Clean()
         end
 
-        return button
-    end
+		button.Hide = function()
+			button.Visible = false
+        end
+
+        button.Show = function()
+			button.Visible = true
+            end
+
     return Button
 end
