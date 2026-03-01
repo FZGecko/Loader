@@ -4,7 +4,12 @@
 local REPO_URL = "https://raw.githubusercontent.com/FZGecko/Loader/main/"
 
 local Loader = {}
+
+-- Loaded modules
 local ModuleCache = {}
+
+-- Modules currently loading (prevents circular crashes)
+local LoadingModules = {}
 
 --------------------------------------------------
 -- INTERNAL IMPORT SYSTEM
@@ -13,19 +18,29 @@ local ModuleCache = {}
 local function Import(path)
 
     --------------------------------------------------
-    -- Cache check
+    -- Cache hit
     --------------------------------------------------
     if ModuleCache[path] then
         return ModuleCache[path]
     end
 
     --------------------------------------------------
-    -- Fetch module
+    -- Circular dependency protection
+    --------------------------------------------------
+    if LoadingModules[path] then
+        error("[Loader] Circular dependency detected while loading: " .. path)
+    end
+
+    LoadingModules[path] = true
+
+    --------------------------------------------------
+    -- Fetch module source
     --------------------------------------------------
     local url = REPO_URL .. path .. ".lua"
 
     local success, response = pcall(game.HttpGet, game, url)
     if not success or not response then
+        LoadingModules[path] = nil
         error("[Loader] Failed to fetch module: " .. path)
     end
 
@@ -37,9 +52,10 @@ local function Import(path)
     source = source:gsub("^\239\187\191", "")
 
     --------------------------------------------------
-    -- GitHub HTML protection
+    -- GitHub returned HTML instead of Lua
     --------------------------------------------------
     if source:sub(1,1) == "<" then
+        LoadingModules[path] = nil
         error("[Loader] GitHub returned HTML instead of Lua for: " .. path)
     end
 
@@ -49,6 +65,7 @@ local function Import(path)
     local chunk, loadErr = load(source, "@" .. path)
 
     if not chunk then
+        LoadingModules[path] = nil
         error(
             "[Loader] Syntax Error in " .. path ..
             "\n----- SOURCE BEGIN -----\n" ..
@@ -59,40 +76,54 @@ local function Import(path)
     end
 
     --------------------------------------------------
-    -- Execute chunk
+    -- Execute module chunk
     --------------------------------------------------
     local ok, result = pcall(chunk)
-    print(path, ok, result)
 
     if not ok then
+        LoadingModules[path] = nil
         error("[Loader] Runtime error while executing module '" .. path .. "'\n" .. tostring(result))
     end
 
     --------------------------------------------------
-    -- Validate factory return
+    -- Validate module contract
     --------------------------------------------------
-    if type(result) ~= "function" then
+    if result == nil then
+        LoadingModules[path] = nil
         error(
-            "[Loader] Module '" .. path .. "' must return:\n" ..
-            "return function(import)\n" ..
+            "[Loader] Module '" .. path .. "' returned nil.\n" ..
+            "Expected:\nreturn function(import)"
+        )
+    end
+
+    if type(result) ~= "function" then
+        LoadingModules[path] = nil
+        error(
+            "[Loader] Module '" .. path .. "' must return a factory function.\n" ..
             "Got: " .. typeof(result)
         )
     end
 
     --------------------------------------------------
-    -- Create module instance
+    -- Create module instance (SAFE CALL)
     --------------------------------------------------
-    local module = result(Import)
-    print("[Loader] Module '" .. path .. "' result:", module)
+    local ok2, module = pcall(result, Import)
+
+    if not ok2 then
+        LoadingModules[path] = nil
+        error("[Loader] Error initializing module '" .. path .. "'\n" .. tostring(module))
+    end
 
     if module == nil then
-        error("[Loader] Module returned nil: " .. path)
+        LoadingModules[path] = nil
+        error("[Loader] Module returned nil after initialization: " .. path)
     end
 
     --------------------------------------------------
     -- Cache module
     --------------------------------------------------
     ModuleCache[path] = module
+    LoadingModules[path] = nil
 
     return module
 end
@@ -105,6 +136,7 @@ Loader.Import = Import
 
 function Loader.Unload()
     table.clear(ModuleCache)
+    table.clear(LoadingModules)
 end
 
 return Loader
