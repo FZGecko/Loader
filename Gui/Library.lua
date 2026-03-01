@@ -12,6 +12,7 @@ return function(import)
 	local Button = import("Gui/Elements/Button")
 	local Dropdown = import("Gui/Elements/Dropdown")
 
+    local Tab = import("Gui/Tab")
     local Library = {}
 
     function Library:CreateWindow(title)
@@ -52,10 +53,12 @@ return function(import)
             Text = title or "Universal Core",
             TextXAlignment = Enum.TextXAlignment.Left,
         })
+
         windowJanitor:Add(titleLabel)
         --// Tab Container
         local tabContainer = Kernel:Create("Frame", {
             Parent = mainFrame,
+			BackgroundTransparency = 1,
             Size = UDim2.new(1, 0, 0, 30),
             Position = UDim2.new(0, 0, 0, 30),
             BackgroundColor3 = Theme.Secondary,
@@ -73,6 +76,10 @@ return function(import)
             ClipsDescendants = true,
         })
         windowJanitor:Add(Kernel:Create("UICorner", { CornerRadius = UDim.new(0, Theme.Rounding), Parent = contentContainer }))
+
+		windowJanitor:Add(Tab.Create("Tab 1", mainFrame, tabContainer, contentContainer))
+		windowJanitor:Add(Tab.Create("Tab 2", mainFrame, tabContainer, contentContainer))
+		windowJanitor:Add(Tab.Create("Tab 3", mainFrame, tabContainer, contentContainer))
 
         --// Dragging Logic
         local dragging = false
@@ -105,7 +112,7 @@ return function(import)
             screenGui.Enabled = not screenGui.Enabled
         end)
 
-        screenGui.Enabled = false
+        screenGui.Enabled = true
         screenGui.Parent = game:GetService("CoreGui")
         return windowJanitor -- Return the janitor so the window can be destroyed individually if needed
     end
