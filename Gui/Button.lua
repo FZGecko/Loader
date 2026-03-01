@@ -54,5 +54,8 @@ return function(import)
 			button.Visible = true
             end
 
+        return button
+    end
+
     return Button
 end
