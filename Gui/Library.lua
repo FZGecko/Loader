@@ -1,11 +1,16 @@
 return function(import)
+    --[GuiLibrary]
     local Kernel = import("Core/Kernel")
     local Janitor = import("Core/Janitor")
     local InputManager = import("Core/InputManager")
     local LoopManager = import("Core/LoopManager")
+	local DrawingManager = import("Core/DrawingManager")
+    local ThemeApplier = import("Gui/ThemeApplier")
     local Services = import("Core/Services")
     local UserInputService = Services.Get("UserInputService")
     local Theme = import("Gui/Theme")
+	local Button = import("Gui/Elements/Button")
+	local Dropdown = import("Gui/Elements/Dropdown")
 
     local Library = {}
 
@@ -47,7 +52,7 @@ return function(import)
             Text = title or "Universal Core",
             TextXAlignment = Enum.TextXAlignment.Left,
         })
-
+        windowJanitor:Add(titleLabel)
         --// Tab Container
         local tabContainer = Kernel:Create("Frame", {
             Parent = mainFrame,
@@ -100,7 +105,7 @@ return function(import)
             screenGui.Enabled = not screenGui.Enabled
         end)
 
-        screenGui.Enabled = true
+        screenGui.Enabled = false
         screenGui.Parent = game:GetService("CoreGui")
         return windowJanitor -- Return the janitor so the window can be destroyed individually if needed
     end
