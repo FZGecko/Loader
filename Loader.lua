@@ -644,8 +644,9 @@ end
 
 function Section:AddDropdown(text: string, flag: string, options: {string}, default: string, callback: (string) -> ())
     self._nextOrder += 1; UI:_setFlag(flag, default)
-    local Container = Util:Create("Frame", { Parent = self._instance, Size = UDim2.new(1, 0, 0, 45), BackgroundTransparency = 1, LayoutOrder = self._nextOrder }, { Util:Create("UIListLayout", {Padding = UDim.new(0, 4)}), Util:Create("TextLabel", { Text = text, Size = UDim2.new(1, 0, 0, 14), BackgroundTransparency = 1, TextColor3 = UI.Themes.Default.TextDark, Font = UI.Themes.Default.Font, TextSize = 11, TextXAlignment = Enum.TextXAlignment.Left }) })
-    local DropBtn = Util:Create("TextButton", { Parent = Container, Size = UDim2.new(1, 0, 0, 25), BackgroundColor3 = UI.Themes.Default.ControlBackground, Text = "  " .. default, TextColor3 = UI.Themes.Default.Text, Font = UI.Themes.Default.Font, TextSize = 11, TextXAlignment = Enum.TextXAlignment.Left }, { Util:Create("UIStroke", {Color = UI.Themes.Default.Outline}), Util:Create("UICorner", {CornerRadius = UDim.new(0, 4)}) })
+    local Container = Util:Create("Frame", { Parent = self._instance, Size = UDim2.new(1, 0, 0, 45), BackgroundTransparency = 1, LayoutOrder = self._nextOrder }, { Util:Create("UIListLayout", {Padding = UDim.new(0, 4)}) })
+    local Label = Util:Create("TextLabel", { Parent = Container, Text = text, Size = UDim2.new(1, 0, 0, 14), BackgroundTransparency = 1, TextColor3 = UI.Themes.Default.TextDark, Font = UI.Themes.Default.Font, TextSize = 11, TextXAlignment = Enum.TextXAlignment.Left, LayoutOrder = 1 })
+    local DropBtn = Util:Create("TextButton", { Parent = Container, Size = UDim2.new(1, 0, 0, 25), BackgroundColor3 = UI.Themes.Default.ControlBackground, Text = "  " .. default, TextColor3 = UI.Themes.Default.Text, Font = UI.Themes.Default.Font, TextSize = 11, TextXAlignment = Enum.TextXAlignment.Left, LayoutOrder = 2 }, { Util:Create("UIStroke", {Color = UI.Themes.Default.Outline}), Util:Create("UICorner", {CornerRadius = UDim.new(0, 4)}) })
     
     self._janitor:Add({Cleanup = function() UI._updaters[flag] = nil end}, "Cleanup")
 
