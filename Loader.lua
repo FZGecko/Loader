@@ -463,6 +463,9 @@ function Feature:AddColorPicker(flag: string, default: Color3, callback: (Color3
     local pickerState = { IsOpen = false, ActivePickerInstance = nil, Janitor = nil }
 
     local function Close()
+        if not pickerState.IsOpen then return end
+        pickerState.IsOpen = false
+        
         if pickerState.Janitor then
             pickerState.Janitor:Cleanup()
             pickerState.Janitor = nil
@@ -478,7 +481,6 @@ function Feature:AddColorPicker(flag: string, default: Color3, callback: (Color3
         end
 
         pickerState.ActivePickerInstance = nil
-        pickerState.IsOpen = false
 
         if _handlerLookup[flag .. "_SVMap"] then _handlerLookup[flag .. "_SVMap"].dead = true end
         if _handlerLookup[flag .. "_Hue"] then _handlerLookup[flag .. "_Hue"].dead = true end
@@ -494,6 +496,7 @@ function Feature:AddColorPicker(flag: string, default: Color3, callback: (Color3
         local PickerWindow = Util:Create("Frame", { Parent = self._window._overlay, Size = UDim2.new(0, 190, 0, 280), Position = UDim2.new(0, PickerBtn.AbsolutePosition.X - 195, 0, PickerBtn.AbsolutePosition.Y), BackgroundColor3 = UI.Themes.Default.SectionBackground, ZIndex = 110, Active = true }, { Util:Create("UICorner", {CornerRadius = UDim.new(0, 4)}), Util:Create("UIStroke", {Color = UI.Themes.Default.Accent, Thickness = 1.5}) })
         pickerState.Janitor:Add(PickerWindow, "Destroy"); pickerState.ActivePickerInstance = PickerWindow; pickerState.IsOpen = true
         table.insert(self._window._popups, PickerWindow)
+        pickerState.Janitor:Add(PickerWindow.Destroying:Connect(Close))
         local HueSlider = Util:Create("Frame", { Parent = PickerWindow, Size = UDim2.new(0, 12, 0, 140), Position = UDim2.new(0, 10, 0, 10), BackgroundColor3 = UI.Themes.Default.Highlight }, { Util:Create("UICorner", {CornerRadius = UDim.new(0, 2)}), Util:Create("UIGradient", { Rotation = 90, Color = ColorSequence.new({ 
             ColorSequenceKeypoint.new(0, Color3.fromHSV(0, 1, 1)), ColorSequenceKeypoint.new(0.167, Color3.fromHSV(0.167, 1, 1)),
             ColorSequenceKeypoint.new(0.333, Color3.fromHSV(0.333, 1, 1)), ColorSequenceKeypoint.new(0.5, Color3.fromHSV(0.5, 1, 1)),
