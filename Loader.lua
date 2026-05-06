@@ -416,14 +416,9 @@ function Feature:AddKeybind(flag: string, default: Enum.KeyCode, callback: (any)
     local function GetName(k) return k.Name:gsub("MouseButton", "MB"):gsub("Keyboard", "") end
     local Btn = Util:Create("TextButton", { Parent = self._container, Size = UDim2.new(0, 60, 0, 22), BackgroundColor3 = UI.Themes.Default.ControlBackground, Text = GetName(default), TextColor3 = UI.Themes.Default.Text, Font = UI.Themes.Default.Font, TextSize = 10, LayoutOrder = 1 }, { Util:Create("UIStroke", {Color = UI.Themes.Default.Outline}), Util:Create("UICorner", {CornerRadius = UDim.new(0, 3)}) })
     
-    local internalCallback = function(key)
-        if self._flag == flag then
-            local newState = not UI._flags[flag]
-            if UI._updaters[flag] then UI._updaters[flag](newState) end
-            Util:SafeCall(callback, newState)
-        else
-            Util:SafeCall(callback, key)
-        end
+    -- Simplified internalCallback: it just passes through to the user's callback
+    local internalCallback = function(...)
+        Util:SafeCall(callback, ...)
     end
 
     UI._binds[flag] = { Key = default, Callback = internalCallback, Mode = "Toggle", Name = self._name, Flag = flag } -- Store metadata for Keybind List
