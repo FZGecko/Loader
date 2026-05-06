@@ -412,7 +412,7 @@ function Feature:AddToggle(flag: string, default: boolean, callback: (boolean) -
     end
     self._janitor:Add({Cleanup = function() UI._updaters[flag] = nil end}, "Cleanup")
     
-    self._janitor:Add(Switch.MouseButton1Click:Connect(function() local active = not UI._flags[flag]; UI._updaters[flag](active); Util:SafeCall(callback, active) end))
+    self._janitor:Add(Switch.MouseButton1Click:Connect(function() local active = not UI._flags[flag]; UI._updaters[flag](active) end))
     return self
 end
 
@@ -644,7 +644,7 @@ end
 
 function Section:AddDropdown(text: string, flag: string, options: {string}, default: string, callback: (string) -> ())
     self._nextOrder += 1; UI:_setFlag(flag, default)
-    local Container = Util:Create("Frame", { Parent = self._instance, Size = UDim2.new(1, 0, 0, 45), BackgroundTransparency = 1, LayoutOrder = self._nextOrder }, { Util:Create("UIListLayout", {Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder}) })
+    local Container = Util:Create("Frame", { Parent = self._instance, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, LayoutOrder = self._nextOrder }, { Util:Create("UIListLayout", {Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder}) })
     local Label = Util:Create("TextLabel", { Parent = Container, Text = text, Size = UDim2.new(1, 0, 0, 14), BackgroundTransparency = 1, TextColor3 = UI.Themes.Default.TextDark, Font = UI.Themes.Default.Font, TextSize = 11, TextXAlignment = Enum.TextXAlignment.Left, LayoutOrder = 1 })
     local DropBtn = Util:Create("TextButton", { Parent = Container, Size = UDim2.new(1, 0, 0, 25), BackgroundColor3 = UI.Themes.Default.ControlBackground, Text = "  " .. default, TextColor3 = UI.Themes.Default.Text, Font = UI.Themes.Default.Font, TextSize = 11, TextXAlignment = Enum.TextXAlignment.Left, LayoutOrder = 2 }, { Util:Create("UIStroke", {Color = UI.Themes.Default.Outline}), Util:Create("UICorner", {CornerRadius = UDim.new(0, 4)}) })
     
@@ -654,6 +654,24 @@ function Section:AddDropdown(text: string, flag: string, options: {string}, defa
         self._window:CloseAllPopups()
         local List = Util:Create("ScrollingFrame", { Parent = self._window._overlay, Size = UDim2.new(0, DropBtn.AbsoluteSize.X, 0, math.min(#options * 25, 150)), Position = UDim2.new(0, DropBtn.AbsolutePosition.X, 0, DropBtn.AbsolutePosition.Y + 30), BackgroundColor3 = UI.Themes.Default.SectionBackground, ScrollBarThickness = 2, CanvasSize = UDim2.new(0, 0, 0, #options * 25), ZIndex = 105 }, { Util:Create("UIListLayout", {}), Util:Create("UIStroke", {Color = UI.Themes.Default.Accent}), Util:Create("UICorner", {CornerRadius = UDim.new(0, 4)}) })
         table.insert(self._window._popups, List)
+
+        task.defer(function()
+            local clickConn
+            clickConn = UserInputService.InputBegan:Connect(function(input)
+                if input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
+                local mPos = UserInputService:GetMouseLocation()
+                local gInset = GuiService:GetGuiInset()
+                local lPos, lSize = List.AbsolutePosition + gInset, List.AbsoluteSize
+                local bPos, bSize = DropBtn.AbsolutePosition + gInset, DropBtn.AbsoluteSize
+
+                if not (mPos.X >= lPos.X and mPos.X <= lPos.X + lSize.X and mPos.Y >= lPos.Y and mPos.Y <= lPos.Y + lSize.Y) and 
+                   not (mPos.X >= bPos.X and mPos.X <= bPos.X + bSize.X and mPos.Y >= bPos.Y and mPos.Y <= bPos.Y + bSize.Y) then
+                    self._window:CloseAllPopups()
+                end
+            end)
+            List.Destroying:Connect(function() clickConn:Disconnect() end)
+        end)
+
         for _, opt in ipairs(options) do
             local isSelected = (UI._flags[flag] == opt)
             local OptBtn = Util:Create("TextButton", { Parent = List, Size = UDim2.new(1, 0, 0, 25), BackgroundTransparency = 1, Text = "  " .. opt, TextColor3 = isSelected and UI.Themes.Default.Accent or UI.Themes.Default.Text, Font = isSelected and UI.Themes.Default.FontBold or UI.Themes.Default.Font, TextSize = 11, TextXAlignment = Enum.TextXAlignment.Left })
