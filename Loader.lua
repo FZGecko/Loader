@@ -404,7 +404,12 @@ function Feature:AddToggle(flag: string, default: boolean, callback: (boolean) -
     UI:_setFlag(flag, default)
     local Switch = Util:Create("TextButton", { Parent = self._container, Size = UDim2.new(0, 32, 0, 16), BackgroundColor3 = default and UI.Themes.Default.Accent or UI.Themes.Default.ControlBackground, Text = "", AutoButtonColor = false, LayoutOrder = 3 }, { Util:Create("UICorner", {CornerRadius = UDim.new(1, 0)}) })
     local Dot = Util:Create("Frame", { Parent = Switch, Size = UDim2.new(0, 12, 0, 12), Position = default and UDim2.new(1, -14, 0.5, -6) or UDim2.new(0, 2, 0.5, -6), BackgroundColor3 = UI.Themes.Default.Highlight }, { Util:Create("UICorner", {CornerRadius = UDim.new(1, 0)}) })
-    UI._updaters[flag] = function(active) UI._flags[flag] = active; Util:Tween(Switch, {0.15}, {BackgroundColor3 = active and UI.Themes.Default.Accent or UI.Themes.Default.ControlBackground}); Util:Tween(Dot, {0.15}, {Position = active and UDim2.new(1, -14, 0.5, -6) or UDim2.new(0, 2, 0.5, -6)}) end
+    UI._updaters[flag] = function(active) 
+        UI._flags[flag] = active; 
+        Util:Tween(Switch, {0.15}, {BackgroundColor3 = active and UI.Themes.Default.Accent or UI.Themes.Default.ControlBackground}); 
+        Util:Tween(Dot, {0.15}, {Position = active and UDim2.new(1, -14, 0.5, -6) or UDim2.new(0, 2, 0.5, -6)})
+        Util:SafeCall(callback, active)
+    end
     self._janitor:Add({Cleanup = function() UI._updaters[flag] = nil end}, "Cleanup")
     
     self._janitor:Add(Switch.MouseButton1Click:Connect(function() local active = not UI._flags[flag]; UI._updaters[flag](active); Util:SafeCall(callback, active) end))
@@ -639,7 +644,7 @@ end
 
 function Section:AddDropdown(text: string, flag: string, options: {string}, default: string, callback: (string) -> ())
     self._nextOrder += 1; UI:_setFlag(flag, default)
-    local Container = Util:Create("Frame", { Parent = self._instance, Size = UDim2.new(1, 0, 0, 45), BackgroundTransparency = 1, LayoutOrder = self._nextOrder }, { Util:Create("UIListLayout", {Padding = UDim.new(0, 4)}) })
+    local Container = Util:Create("Frame", { Parent = self._instance, Size = UDim2.new(1, 0, 0, 45), BackgroundTransparency = 1, LayoutOrder = self._nextOrder }, { Util:Create("UIListLayout", {Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder}) })
     local Label = Util:Create("TextLabel", { Parent = Container, Text = text, Size = UDim2.new(1, 0, 0, 14), BackgroundTransparency = 1, TextColor3 = UI.Themes.Default.TextDark, Font = UI.Themes.Default.Font, TextSize = 11, TextXAlignment = Enum.TextXAlignment.Left, LayoutOrder = 1 })
     local DropBtn = Util:Create("TextButton", { Parent = Container, Size = UDim2.new(1, 0, 0, 25), BackgroundColor3 = UI.Themes.Default.ControlBackground, Text = "  " .. default, TextColor3 = UI.Themes.Default.Text, Font = UI.Themes.Default.Font, TextSize = 11, TextXAlignment = Enum.TextXAlignment.Left, LayoutOrder = 2 }, { Util:Create("UIStroke", {Color = UI.Themes.Default.Outline}), Util:Create("UICorner", {CornerRadius = UDim.new(0, 4)}) })
     
@@ -650,7 +655,8 @@ function Section:AddDropdown(text: string, flag: string, options: {string}, defa
         local List = Util:Create("ScrollingFrame", { Parent = self._window._overlay, Size = UDim2.new(0, DropBtn.AbsoluteSize.X, 0, math.min(#options * 25, 150)), Position = UDim2.new(0, DropBtn.AbsolutePosition.X, 0, DropBtn.AbsolutePosition.Y + 30), BackgroundColor3 = UI.Themes.Default.SectionBackground, ScrollBarThickness = 2, CanvasSize = UDim2.new(0, 0, 0, #options * 25), ZIndex = 105 }, { Util:Create("UIListLayout", {}), Util:Create("UIStroke", {Color = UI.Themes.Default.Accent}), Util:Create("UICorner", {CornerRadius = UDim.new(0, 4)}) })
         table.insert(self._window._popups, List)
         for _, opt in ipairs(options) do
-            local OptBtn = Util:Create("TextButton", { Parent = List, Size = UDim2.new(1, 0, 0, 25), BackgroundTransparency = 1, Text = "  " .. opt, TextColor3 = UI.Themes.Default.Text, Font = UI.Themes.Default.Font, TextSize = 11, TextXAlignment = Enum.TextXAlignment.Left }) -- Line break for readability
+            local isSelected = (UI._flags[flag] == opt)
+            local OptBtn = Util:Create("TextButton", { Parent = List, Size = UDim2.new(1, 0, 0, 25), BackgroundTransparency = 1, Text = "  " .. opt, TextColor3 = isSelected and UI.Themes.Default.Accent or UI.Themes.Default.Text, Font = isSelected and UI.Themes.Default.FontBold or UI.Themes.Default.Font, TextSize = 11, TextXAlignment = Enum.TextXAlignment.Left })
             self._janitor:Add(OptBtn.MouseButton1Click:Connect(function() UI:_setFlag(flag, opt); DropBtn.Text = "  " .. opt; Util:SafeCall(callback, opt); self._window:CloseAllPopups() end))
         end
     end))
