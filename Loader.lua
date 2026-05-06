@@ -1,3 +1,5 @@
+-- loadstring(game:HttpGet("https://raw.githubusercontent.com/FZGecko/Loader/refs/heads/main/Loader.lua"))()
+
 --!optimize 2
 --!strict
 --[[
@@ -462,6 +464,7 @@ function Feature:AddColorPicker(flag: string, default: Color3, callback: (Color3
 
     local function Close()
         if pickerState.Janitor then
+            pickerState.Janitor:Cleanup()
             pickerState.Janitor = nil
         end
         
